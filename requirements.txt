@@ -1,0 +1,4 @@
+streamlit
+zxcvbn
+markdown
+fpdf2
