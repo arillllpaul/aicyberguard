@@ -227,7 +227,11 @@ class NLPEngine:
         feedback_list = []
         warning_en = result['feedback']['warning']
         if warning_en:
-            warning_id = zxcvbn_dict.get(warning_en, warning_en)
+            warning_id = warning_en
+            for k, v in zxcvbn_dict.items():
+                if k.lower() in warning_en.lower():
+                    warning_id = v
+                    break
             feedback_list.append(f"- **Peringatan:** {warning_id}")
             
         # Tambahkan saran khusus jika kompleksitas rendah
@@ -240,7 +244,11 @@ class NLPEngine:
                 feedback_list.append(f"- **Saran:** Tambahkan kombinasi {', '.join(missing)} agar sandi lebih rumit ditebak.")
                 
         for sug_en in result['feedback']['suggestions']:
-            sug_id = zxcvbn_dict.get(sug_en, sug_en)
+            sug_id = sug_en
+            for k, v in zxcvbn_dict.items():
+                if k.lower() in sug_en.lower():
+                    sug_id = v
+                    break
             # Jangan duplikasi saran
             if sug_id not in " ".join(feedback_list):
                 feedback_list.append(f"- {sug_id}")

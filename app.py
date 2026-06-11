@@ -393,14 +393,13 @@ else:
     import markdown
     for message in st.session_state.messages:
         if message["role"] == "user":
-            html_user = f"""
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px; align-items: flex-end;">
-                <div style="background: linear-gradient(135deg, #6C63FF, #4834d4); color: white; padding: 15px 20px; border-radius: 20px 20px 0px 20px; max-width: 80%; box-shadow: 0px 4px 15px rgba(108, 99, 255, 0.2); font-family: 'Inter', sans-serif; font-size: 1rem;">
-                    {message["content"]}
-                </div>
-                <div style="margin-left: 15px; font-size: 28px; line-height: 1;">👤</div>
-            </div>
-            """
+            safe_content = str(message["content"]).replace('<', '&lt;').replace('>', '&gt;')
+            html_user = f"""<div style="display: flex; justify-content: flex-end; margin-bottom: 20px; align-items: flex-end;">
+<div style="background: linear-gradient(135deg, #6C63FF, #4834d4); color: white; padding: 15px 20px; border-radius: 20px 20px 0px 20px; max-width: 80%; box-shadow: 0px 4px 15px rgba(108, 99, 255, 0.2); font-family: 'Inter', sans-serif; font-size: 1rem; word-break: break-word;">
+{safe_content}
+</div>
+<div style="margin-left: 15px; font-size: 28px; line-height: 1;">👤</div>
+</div>"""
             st.markdown(html_user, unsafe_allow_html=True)
         else:
             bot_html = markdown.markdown(message["content"])
