@@ -393,20 +393,27 @@ class NLPEngine:
 
         # 3. Cek Typosquatting / Sub-domain abuse
         institutions = r"bca|mandiri|bri|bni|netflix|shopee|tokopedia|gojek|grab|dana|ovo"
-        # Misal: bca.co.id.login-update.com (root domainnya login-update.com)
         parts = domain.split('.')
-        if len(parts) >= 3:
-            subdomain = ".".join(parts[:-2])
-            root_domain = ".".join(parts[-2:])
-            if re.search(institutions, subdomain) and not re.search(r"(co\.id|com|id|go\.id)$", root_domain):
-                score += 50
-                feedback.append(f"🎭 **Pemalsuan Sub-Domain:** Tautan ini mencoba mengecoh Anda. Nama aslinya adalah `{root_domain}`, BUKAN `{subdomain}`.")
-        # Cek jika institusi ada di root domain tapi ekstensinya aneh (misal bca-login.com)
+        
+        # Pisahkan root domain dan subdomain secara cerdas (menangani .co.id, .go.id, dll)
+        if len(parts) >= 3 and parts[-2] in ['co', 'go', 'ac', 'or', 'sch', 'my', 'web'] and parts[-1] == 'id':
+            root_domain = ".".join(parts[-3:])
+            subdomain = ".".join(parts[:-3])
         elif len(parts) >= 2:
-             root_domain = ".".join(parts[-2:])
-             if re.search(institutions, root_domain) and not re.search(r"(co\.id|com|id|go\.id)$", root_domain):
+            root_domain = ".".join(parts[-2:])
+            subdomain = ".".join(parts[:-2])
+        else:
+            root_domain = domain
+            subdomain = ""
+            
+        if re.search(institutions, subdomain) and not re.search(institutions, root_domain):
+            score += 50
+            feedback.append(f"🎭 **Pemalsuan Sub-Domain:** Tautan ini mengecoh Anda. Nama aslinya adalah `{root_domain}`, BUKAN `{subdomain}`.")
+        elif re.search(institutions, root_domain):
+            suspicious_root_keywords = r"(update|login|verifikasi|secure|auth|info|cs|bantuan|hadiah|klaim|promo)"
+            if re.search(suspicious_root_keywords, root_domain):
                  score += 50
-                 feedback.append(f"🔤 **Pembajakan URL (Typosquatting):** Tautan ini mencatut nama institusi resmi namun menggunakan domain tidak resmi `{root_domain}`.")
+                 feedback.append(f"🔤 **Pembajakan URL (Typosquatting):** Tautan ini mencatut nama institusi resmi namun menggunakan domain palsu `{root_domain}`.")
 
         # 4. Deteksi ekstensi domain aneh (Suspicious TLD)
         suspicious_tlds = r"\.(xyz|top|online|site|club|tk|ml|cum|vip|buzz)$"
