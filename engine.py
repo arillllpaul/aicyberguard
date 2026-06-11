@@ -172,11 +172,39 @@ class NLPEngine:
         score = result['score']  # 0-4
         crack_time = result['crack_times_display']['offline_slow_hashing_1e4_per_second']
         
+        # --- PENYESUAIAN SKOR REALISTIS (CUSTOM PENALTY) ---
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;':\",./<>?`~" for c in password)
+        
+        complexity = sum([has_upper, has_lower, has_digit, has_special])
+        
+        if len(password) < 8:
+            score = min(score, 1)
+        elif score == 4 and complexity < 3 and len(password) < 20:
+            score = 3
+            
+        if score == 3 and complexity < 2 and len(password) < 16:
+            score = 2
+            
         feedback_list = []
         if result['feedback']['warning']:
             feedback_list.append(f"- **Peringatan:** {result['feedback']['warning']}")
+            
+        # Tambahkan saran khusus jika kompleksitas rendah
+        if complexity < 3 and score < 4:
+            missing = []
+            if not has_upper: missing.append("huruf kapital")
+            if not has_digit: missing.append("angka")
+            if not has_special: missing.append("simbol")
+            if missing:
+                feedback_list.append(f"- **Saran:** Tambahkan kombinasi {', '.join(missing)} agar sandi lebih rumit ditebak.")
+                
         for sug in result['feedback']['suggestions']:
-            feedback_list.append(f"- {sug}")
+            # Jangan duplikasi saran
+            if sug not in " ".join(feedback_list):
+                feedback_list.append(f"- {sug}")
 
         return {
             'score': score,
