@@ -392,7 +392,7 @@ class NLPEngine:
             feedback.append("🔗 **Tautan Tersembunyi (URL Shortener):** Ini adalah pemendek tautan yang sering dipakai untuk menyembunyikan alamat asli situs berbahaya.")
 
         # 3. Cek Typosquatting / Sub-domain abuse
-        institutions = r"(bca|mandiri|bri|bni|netflix|shopee|tokopedia|gojek|grab|dana|ovo)"
+        institutions = r"bca|mandiri|bri|bni|netflix|shopee|tokopedia|gojek|grab|dana|ovo"
         # Misal: bca.co.id.login-update.com (root domainnya login-update.com)
         parts = domain.split('.')
         if len(parts) >= 3:
@@ -401,6 +401,12 @@ class NLPEngine:
             if re.search(institutions, subdomain) and not re.search(r"(co\.id|com|id|go\.id)$", root_domain):
                 score += 50
                 feedback.append(f"🎭 **Pemalsuan Sub-Domain:** Tautan ini mencoba mengecoh Anda. Nama aslinya adalah `{root_domain}`, BUKAN `{subdomain}`.")
+        # Cek jika institusi ada di root domain tapi ekstensinya aneh (misal bca-login.com)
+        elif len(parts) >= 2:
+             root_domain = ".".join(parts[-2:])
+             if re.search(institutions, root_domain) and not re.search(r"(co\.id|com|id|go\.id)$", root_domain):
+                 score += 50
+                 feedback.append(f"🔤 **Pembajakan URL (Typosquatting):** Tautan ini mencatut nama institusi resmi namun menggunakan domain tidak resmi `{root_domain}`.")
 
         # 4. Deteksi ekstensi domain aneh (Suspicious TLD)
         suspicious_tlds = r"\.(xyz|top|online|site|club|tk|ml|cum|vip|buzz)$"
