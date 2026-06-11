@@ -185,7 +185,7 @@ class NLPEngine:
             classic_score = 0
         elif length < 8:
             classic_score = 1
-        elif length >= 12 and complexity >= 3:
+        elif length >= 12 and complexity >= 3 and has_special:
             classic_score = 4
         elif length >= 8 and complexity >= 2:
             classic_score = 3
