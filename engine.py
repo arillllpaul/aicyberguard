@@ -172,25 +172,63 @@ class NLPEngine:
         score = result['score']  # 0-4
         crack_time = result['crack_times_display']['offline_slow_hashing_1e4_per_second']
         
-        # --- PENYESUAIAN SKOR REALISTIS (CUSTOM PENALTY) ---
+        # --- PENYESUAIAN SKOR: STANDAR KLASIK ---
         has_upper = any(c.isupper() for c in password)
         has_lower = any(c.islower() for c in password)
         has_digit = any(c.isdigit() for c in password)
         has_special = any(c in "!@#$%^&*()_+-=[]{}|;':\",./<>?`~" for c in password)
         
         complexity = sum([has_upper, has_lower, has_digit, has_special])
+        length = len(password)
         
-        if len(password) < 8:
-            score = min(score, 1)
-        elif score == 4 and complexity < 3 and len(password) < 20:
-            score = 3
+        if pwned_count > 0:
+            classic_score = 0
+        elif length < 8:
+            classic_score = 1
+        elif length >= 12 and complexity >= 3:
+            classic_score = 4
+        elif length >= 8 and complexity >= 2:
+            classic_score = 3
+        else:
+            classic_score = 2
             
-        if score == 3 and complexity < 2 and len(password) < 16:
-            score = 2
+        # Mengambil skor yang paling ketat antara AI (zxcvbn) dan Aturan Klasik
+        score = min(result['score'], classic_score)
+            
+        # --- TERJEMAHAN BAHASA INDONESIA UNTUK PERINGATAN ZXCVBN ---
+        zxcvbn_dict = {
+            "Straight rows of keys are easy to guess": "Pola ketikan berurutan (seperti qwerty) sangat mudah ditebak.",
+            "Short keyboard patterns are easy to guess": "Pola keyboard yang pendek mudah ditebak.",
+            "Use a longer keyboard pattern with more turns": "Gunakan pola keyboard yang lebih panjang dan acak.",
+            "Repeats like \"aaa\" are easy to guess": "Karakter berulang seperti 'aaa' sangat mudah ditebak.",
+            "Repeats like \"abcabcabc\" are only slightly harder to guess than \"abc\"": "Pola berulang seperti 'abcabcabc' tidak menambah keamanan secara signifikan.",
+            "Sequences like abc or 6543 are easy to guess": "Urutan beruntun seperti 'abc' atau '6543' sangat mudah ditebak.",
+            "Recent years are easy to guess": "Tahun-tahun masa kini mudah ditebak.",
+            "Dates are often easy to guess": "Kombinasi format tanggal mudah ditebak.",
+            "Top 10 common passwords": "Ini adalah salah satu dari 10 sandi pasaran yang paling sering dibobol.",
+            "Top 100 common passwords": "Ini adalah sandi pasaran yang sangat sering dibobol.",
+            "Very common password": "Kata sandi ini sangat pasaran dan sering dipakai orang.",
+            "Similar to a commonly used password": "Sangat mirip dengan kata sandi pasaran.",
+            "A word by itself is easy to guess": "Hanya memakai satu kata kamus tunggal sangat mudah ditebak.",
+            "Names and surnames by themselves are easy to guess": "Hanya memakai nama depan/belakang tunggal mudah ditebak.",
+            "Common names and surnames are easy to guess": "Nama yang umum dipakai orang sangat mudah ditebak.",
+            "Add another word or two. Uncommon words are better.": "Tambahkan satu atau dua kata lagi (Passphrase). Gunakan kata yang jarang terpikirkan.",
+            "Avoid repeated words and characters": "Hindari penggunaan kata atau huruf yang diulang-ulang.",
+            "Avoid sequences": "Hindari urutan karakter alfabet atau angka beruntun.",
+            "Avoid recent years": "Hindari menggunakan angka tahun masa kini.",
+            "Avoid years that are associated with you": "Hindari tahun yang berkaitan dengan profil Anda (seperti tahun lahir).",
+            "Avoid dates and years that are associated with you": "Hindari tanggal dan tahun kelahiran atau momen penting Anda.",
+            "Capitalization doesn't help very much": "Sekadar memberi huruf kapital di awal tidak membuat sandi jadi kuat.",
+            "All-uppercase is almost as easy to guess as all-lowercase": "Sandi huruf besar semua sama mudahnya ditebak dengan huruf kecil semua.",
+            "Reversed words aren't much harder to guess": "Kata yang ejaannya dibalik tidak menjamin sandi jadi aman.",
+            "Predictable substitutions like '@' instead of 'a' don't help very much": "Menyamarkan 'a' menjadi '@' atau 'i' menjadi '1' adalah trik kuno yang mudah ditebak peretas."
+        }
             
         feedback_list = []
-        if result['feedback']['warning']:
-            feedback_list.append(f"- **Peringatan:** {result['feedback']['warning']}")
+        warning_en = result['feedback']['warning']
+        if warning_en:
+            warning_id = zxcvbn_dict.get(warning_en, warning_en)
+            feedback_list.append(f"- **Peringatan:** {warning_id}")
             
         # Tambahkan saran khusus jika kompleksitas rendah
         if complexity < 3 and score < 4:
@@ -201,10 +239,11 @@ class NLPEngine:
             if missing:
                 feedback_list.append(f"- **Saran:** Tambahkan kombinasi {', '.join(missing)} agar sandi lebih rumit ditebak.")
                 
-        for sug in result['feedback']['suggestions']:
+        for sug_en in result['feedback']['suggestions']:
+            sug_id = zxcvbn_dict.get(sug_en, sug_en)
             # Jangan duplikasi saran
-            if sug not in " ".join(feedback_list):
-                feedback_list.append(f"- {sug}")
+            if sug_id not in " ".join(feedback_list):
+                feedback_list.append(f"- {sug_id}")
 
         return {
             'score': score,
